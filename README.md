@@ -125,25 +125,9 @@ pnpm install
 pnpm build
 ```
 
-### 2. 격리 환경 생성
+### 2. 설정 파일 작성
 
-이미 OpenClaw를 쓰고 있어도 걱정 없음 — 완전히 별도 폴더에서 실행됨.
-
-```bash
-mkdir -p ~/.openclaw-custom
-```
-
-| 항목      | 기존 OpenClaw     | 이 포크               |
-| --------- | ----------------- | --------------------- |
-| 설정 폴더 | `~/.openclaw/`    | `~/.openclaw-custom/` |
-| 포트      | 18789             | 19789                 |
-| 웹 UI     | `localhost:18789` | `localhost:19789`     |
-
-두 개를 동시에 띄워도 충돌 없음.
-
-### 3. 설정 파일 작성
-
-`~/.openclaw-custom/openclaw.json`을 만드세요. 아래는 기본 템플릿:
+`~/.openclaw/openclaw.json`에 에이전트를 정의합니다. 아래는 기본 템플릿:
 
 ```jsonc
 {
@@ -196,12 +180,6 @@ mkdir -p ~/.openclaw-custom
             "exec",
             "process",
             "message",
-            "cron",
-            "gateway",
-            "canvas",
-            "browser",
-            "nodes",
-            "tts",
             "sessions_spawn",
             "subagents",
           ],
@@ -225,12 +203,6 @@ mkdir -p ~/.openclaw-custom
             "exec",
             "process",
             "message",
-            "cron",
-            "gateway",
-            "canvas",
-            "browser",
-            "nodes",
-            "tts",
             "sessions_spawn",
             "subagents",
           ],
@@ -252,12 +224,6 @@ mkdir -p ~/.openclaw-custom
             "apply_patch",
             "process",
             "message",
-            "cron",
-            "gateway",
-            "canvas",
-            "browser",
-            "nodes",
-            "tts",
             "sessions_spawn",
             "subagents",
           ],
@@ -274,27 +240,15 @@ mkdir -p ~/.openclaw-custom
     },
   },
   "gateway": {
-    "port": 19789,
     "mode": "local",
     "bind": "loopback",
-    "auth": { "mode": "none" },
   },
 }
 ```
 
-### 4. 인증 설정
+### 3. 팀장 행동 규칙 작성
 
-```bash
-# 기존 OpenClaw 인증이 있으면 복사
-cp ~/.openclaw/credentials/* ~/.openclaw-custom/credentials/
-
-# 없으면 새로 로그인
-./run-custom.sh login
-```
-
-### 5. 팀장 행동 규칙 작성
-
-`~/.openclaw-custom/workspace/AGENTS.md` 파일을 만드세요.
+`~/.openclaw/workspace/AGENTS.md` 파일을 만드세요.
 이 파일이 팀장 AI에게 "너는 직접 일하지 말고 부하한테 시켜" 라고 알려주는 역할:
 
 ```markdown
@@ -311,23 +265,23 @@ When a user asks a question that requires ANY of the following, you MUST spawn a
 **The ONLY time you may answer directly** is for trivial conversational replies.
 ```
 
-### 6. 실행
+### 4. 인증 및 실행
 
 ```bash
-./run-custom.sh              # 게이트웨이 실행 (포트 19789)
-./run-custom.sh status       # 상태 확인
-./run-custom.sh doctor       # 진단
+# 인증 (처음 한 번)
+pnpm openclaw login
+
+# 게이트웨이 실행
+pnpm openclaw gateway run
 ```
 
-브라우저에서 `http://localhost:19789` 접속.
-
----
+## 브라우저에서 `http://localhost:18789` 접속.
 
 ## 모델 갈아끼기
 
 ### 에이전트별 모델 변경
 
-`~/.openclaw-custom/openclaw.json`에서 각 에이전트의 `model` 필드를 바꾸면 됩니다.
+`openclaw.json`에서 각 에이전트의 `model` 필드를 바꾸면 됩니다.
 
 ```jsonc
 {
