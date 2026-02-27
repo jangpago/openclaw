@@ -250,7 +250,13 @@ export async function spawnSubagentDirect(
   const requesterAgentId = normalizeAgentId(
     ctx.requesterAgentIdOverride ?? parseAgentSessionKey(requesterInternalKey)?.agentId,
   );
-  const targetAgentId = requestedAgentId ? normalizeAgentId(requestedAgentId) : requesterAgentId;
+  const requesterConfig = resolveAgentConfig(cfg, requesterAgentId);
+  const configuredDefaultAgentId = requesterConfig?.subagents?.defaultAgentId
+    ? normalizeAgentId(requesterConfig.subagents.defaultAgentId)
+    : undefined;
+  const targetAgentId = requestedAgentId
+    ? normalizeAgentId(requestedAgentId)
+    : (configuredDefaultAgentId ?? requesterAgentId);
   if (targetAgentId !== requesterAgentId) {
     const allowAgents = resolveAgentConfig(cfg, requesterAgentId)?.subagents?.allowAgents ?? [];
     const allowAny = allowAgents.some((value) => value.trim() === "*");
