@@ -89,9 +89,62 @@
 
 ---
 
+## /orchestrate 사용법
+
+채팅창에서 `/orchestrate` 커맨드로 팀장 AI의 동작 모드를 실시간 전환합니다.
+
+```
+/orchestrate          현재 모드 확인
+/orchestrate auto     자동 판단 (기본값) — 메시지 보고 직접/위임 결정
+/orchestrate direct   직접 모드 — 모든 도구 사용 가능
+/orchestrate delegate 위임 모드 — 서브에이전트에만 일을 시킴
+```
+
+### 모드별 동작
+
+| 모드         | 팀장이 쓸 수 있는 도구         | 언제 쓰나              |
+| ------------ | ------------------------------ | ---------------------- |
+| **auto**     | 메시지마다 자동 결정           | 평소 사용 (기본값)     |
+| **direct**   | read, exec, web_search 등 전부 | 빠른 확인, 간단한 작업 |
+| **delegate** | sessions_spawn, subagents만    | 깊은 분석, 복잡한 연구 |
+
+### auto 모드의 판단 기준
+
+auto 모드는 메시지 내용을 보고 매 턴마다 direct/delegate를 자동 결정합니다:
+
+- **direct로 가는 경우**: 짧은 메시지 (40자 미만), 인사/잡담, 직접 명령 ("git status", "run tests")
+- **delegate로 가는 경우**: 긴 메시지 (300자 이상), 분석/조사 키워드 ("analyze", "investigate", "compare"), 다수 질문 (물음표 2개 이상)
+
+### 핵심 원리
+
+프롬프트로 "쓰지 마"라고 하는 게 아니라, **도구 목록 자체를 에이전트 실행 전에 바꿔치기**합니다.
+delegate 모드에서는 main 에이전트에게 `sessions_spawn` 외의 도구가 아예 보이지 않으므로,
+직접 작업하고 싶어도 물리적으로 불가능합니다.
+
+```
+direct 모드:   main에게 [read, exec, web_search, sessions_spawn, ...] 전부 보임
+delegate 모드: main에게 [sessions_spawn, subagents, sessions_list] 만 보임
+auto 모드:     매 턴마다 위 둘 중 하나를 자동 선택
+```
+
+### 실제 테스트 결과 (2026-02-28)
+
+| 테스트           | 입력                                          | 기대 동작             | 실제 결과                                                      |
+| ---------------- | --------------------------------------------- | --------------------- | -------------------------------------------------------------- |
+| 커맨드 표시      | `/orchestrate`                                | 현재 모드 + 사용법    | `Orchestration mode: (not set). Usage: auto\|direct\|delegate` |
+| direct 설정      | `/orchestrate direct`                         | 모드 변경 확인        | `mode set to direct (all tools available)`                     |
+| direct 동작      | "package.json 버전?"                          | 파일 직접 읽기 가능   | `2026.2.26-beta.1` 정답                                        |
+| delegate 설정    | `/orchestrate delegate`                       | 모드 변경 확인        | `mode set to delegate (delegation tools only)`                 |
+| delegate 동작    | "파일 확인해"                                 | sessions_spawn만 사용 | main -> sessions_spawn -> explore(sonnet-4) -> read            |
+| auto 설정        | `/orchestrate auto`                           | 모드 변경 확인        | `mode set to auto (heuristic selects per turn)`                |
+| auto 짧은 질문   | "hi"                                          | direct (도구 안 씀)   | 직접 답변, 도구 호출 없음                                      |
+| auto 복잡한 질문 | "Analyze the entire architecture..." (300자+) | delegate (위임)       | "서브에이전트가 소스코드를 훑고 있으니" -> sessions_spawn      |
+
+---
+
 ## 소스 코드 변경 상세
 
-변경은 **10파일, 약 200줄** — upstream과 충돌 가능성 낮음.
+변경은 **14파일, 약 260줄** — upstream과 충돌 가능성 낮음.
 
 ### Phase 1: `subagents.defaultAgentId` 옵션 추가
 
@@ -411,7 +464,7 @@ git rebase origin/main              # 내 변경 위에 올리기
 pnpm install && pnpm build          # 다시 빌드
 ```
 
-소스 변경이 3파일, 15줄뿐이라 충돌 가능성 거의 없습니다.
+소스 변경이 14파일이지만 대부분 값 전달(plumbing)이라 충돌 가능성 낮습니다.
 
 ---
 
