@@ -79,6 +79,8 @@ export type FollowupRun = {
     ownerNumbers?: string[];
     extraSystemPrompt?: string;
     enforceFinalTag?: boolean;
+    /** Resolved orchestration mode (direct or delegate) for tool visibility. */
+    orchestrationMode?: "direct" | "delegate";
   };
 };
 

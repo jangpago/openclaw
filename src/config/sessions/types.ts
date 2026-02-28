@@ -111,6 +111,7 @@ export type SessionEntry = {
   groupActivation?: "mention" | "always";
   groupActivationNeedsSystemIntro?: boolean;
   sendPolicy?: "allow" | "deny";
+  orchestrationMode?: "auto" | "direct" | "delegate";
   queueMode?:
     | "steer"
     | "followup"

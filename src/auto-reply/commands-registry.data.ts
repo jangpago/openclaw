@@ -628,6 +628,22 @@ function buildChatCommands(): ChatCommandDefinition[] {
       argsMenu: "auto",
     }),
     defineChatCommand({
+      key: "orchestrate",
+      nativeName: "orchestrate",
+      description: "Set orchestration mode (auto, direct, delegate).",
+      textAlias: "/orchestrate",
+      category: "options",
+      args: [
+        {
+          name: "mode",
+          description: "auto, direct, or delegate",
+          type: "string",
+          choices: ["auto", "direct", "delegate"],
+        },
+      ],
+      argsMenu: "auto",
+    }),
+    defineChatCommand({
       key: "exec",
       nativeName: "exec",
       description: "Set exec defaults for this session.",

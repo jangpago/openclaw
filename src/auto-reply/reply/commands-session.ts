@@ -10,6 +10,7 @@ import { scheduleGatewaySigusr1Restart, triggerOpenClawRestart } from "../../inf
 import { loadCostUsageSummary, loadSessionCostSummary } from "../../infra/session-cost-usage.js";
 import { formatTokenCount, formatUsd } from "../../utils/usage-format.js";
 import { parseActivationCommand } from "../group-activation.js";
+import { parseOrchestrateCommand } from "../orchestrate-policy.js";
 import { parseSendPolicyCommand } from "../send-policy.js";
 import { normalizeUsageDisplay, resolveResponseUsageMode } from "../thinking.js";
 import { handleAbortTrigger, handleStopCommand } from "./commands-session-abort.js";
@@ -139,6 +140,46 @@ export const handleSendPolicyCommand: CommandHandler = async (params, allowTextC
   return {
     shouldContinue: false,
     reply: { text: `⚙️ Send policy set to ${label}.` },
+  };
+};
+
+export const handleOrchestrateCommand: CommandHandler = async (params, allowTextCommands) => {
+  if (!allowTextCommands) {
+    return null;
+  }
+  const orchestrateCommand = parseOrchestrateCommand(params.command.commandBodyNormalized);
+  if (!orchestrateCommand.hasCommand) {
+    return null;
+  }
+  if (!params.command.isAuthorizedSender) {
+    logVerbose(
+      `Ignoring /orchestrate from unauthorized sender: ${params.command.senderId || "<unknown>"}`,
+    );
+    return { shouldContinue: false };
+  }
+  if (!orchestrateCommand.mode) {
+    const current = params.sessionEntry?.orchestrationMode ?? "(not set)";
+    return {
+      shouldContinue: false,
+      reply: {
+        text: `\u2699\uFE0F Orchestration mode: ${current}.\nUsage: /orchestrate auto|direct|delegate`,
+      },
+    };
+  }
+  if (params.sessionEntry && params.sessionStore && params.sessionKey) {
+    params.sessionEntry.orchestrationMode = orchestrateCommand.mode;
+    await persistSessionEntry(params);
+  }
+  const descriptions: Record<string, string> = {
+    auto: "auto (heuristic selects direct or delegate per turn)",
+    direct: "direct (all tools available)",
+    delegate: "delegate (delegation tools only)",
+  };
+  return {
+    shouldContinue: false,
+    reply: {
+      text: `\u2699\uFE0F Orchestration mode set to ${descriptions[orchestrateCommand.mode]}.`,
+    },
   };
 };
 

@@ -69,8 +69,8 @@
 ┌──────────────────────────────────────────────────┐
 │  Main (Sisyphus) — 팀장                          │
 │  모델: claude-opus-4                             │
-│  도구: sessions_spawn, subagents만 보유          │
-│  역할: 위임 판단 → 서브에이전트 스폰 → 결과 종합  │
+│  도구: /orchestrate로 동적 전환                   │
+│  역할: 간단한 건 직접, 복잡한 건 위임              │
 └──┬───────────────┬───────────────┬───────────────┘
    │               │               │
    ▼               ▼               ▼
@@ -91,9 +91,9 @@
 
 ## 소스 코드 변경 상세
 
-변경은 **3파일, 약 15줄** — upstream과 충돌 가능성 거의 없음.
+변경은 **10파일, 약 200줄** — upstream과 충돌 가능성 낮음.
 
-### 핵심: `subagents.defaultAgentId` 옵션 추가
+### Phase 1: `subagents.defaultAgentId` 옵션 추가
 
 | 파일                                     | 무슨 변경?                                  |
 | ---------------------------------------- | ------------------------------------------- |
@@ -110,6 +110,30 @@ const targetAgentId = requestedAgentId ?? requesterAgentId;
 const targetAgentId = requestedAgentId ?? configuredDefaultAgentId ?? requesterAgentId;
 // → 모델이 agentId를 안 넘기면 설정된 기본 에이전트(예: "explore")로 fallback
 // → 부하 자신의 권한 사용
+```
+
+### Phase 2: `/orchestrate` 동적 도구 토글
+
+팀장 AI가 상황에 따라 직접 처리할지, 위임할지 **런타임에 전환**할 수 있게 합니다.
+
+| 파일                                           | 무슨 변경?                                       |
+| ---------------------------------------------- | ------------------------------------------------ |
+| `src/config/sessions/types.ts`                 | `SessionEntry`에 `orchestrationMode` 필드 추가   |
+| `src/auto-reply/orchestrate-policy.ts`         | **신규** — 커맨드 파서, auto 휴리스틱, 도구 정책 |
+| `src/auto-reply/commands-registry.data.ts`     | `/orchestrate` 커맨드 등록                       |
+| `src/auto-reply/reply/commands-session.ts`     | `handleOrchestrateCommand` 핸들러                |
+| `src/auto-reply/reply/commands-core.ts`        | 핸들러 디스패치에 추가                           |
+| `src/agents/pi-tools.ts`                       | 도구 정책 파이프라인에 오케스트레이션 스텝 추가  |
+| `src/agents/pi-embedded-runner/run/params.ts`  | `orchestrationMode` 파라미터 추가                |
+| `src/agents/pi-embedded-runner/run/attempt.ts` | `createOpenClawCodingTools`에 전달               |
+| 기타 (run.ts, get-reply-run.ts, 등)            | 값 전달 플러밍                                   |
+
+**핵심 원리**: 모델한테 "쓰지 마" 하는 게 아니라, **도구 목록 자체를 에이전트 실행 전에 바꿔치기**.
+
+```
+/orchestrate direct   → 모든 도구 사용 가능 (기존 모드)
+/orchestrate delegate → 위임 도구만 사용 (sessions_spawn, subagents 등)
+/orchestrate auto     → 메시지 내용 보고 자동 판단 (기본값)
 ```
 
 ---

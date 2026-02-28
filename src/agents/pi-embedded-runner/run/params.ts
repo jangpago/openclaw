@@ -81,6 +81,8 @@ export type RunEmbeddedPiAgentParams = {
   suppressToolErrorWarnings?: boolean;
   execOverrides?: Pick<ExecToolDefaults, "host" | "security" | "ask" | "node">;
   bashElevated?: ExecElevatedDefaults;
+  /** Resolved orchestration mode (direct or delegate) for tool visibility. */
+  orchestrationMode?: "direct" | "delegate";
   timeoutMs: number;
   runId: string;
   abortSignal?: AbortSignal;

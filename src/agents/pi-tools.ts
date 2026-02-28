@@ -1,4 +1,5 @@
 import { codingTools, createReadTool, readTool } from "@mariozechner/pi-coding-agent";
+import { buildOrchestrationToolPolicy } from "../auto-reply/orchestrate-policy.js";
 import type { OpenClawConfig } from "../config/config.js";
 import type { ToolLoopDetectionConfig } from "../config/types.tools.js";
 import { resolveMergedSafeBinProfileFixtures } from "../infra/exec-safe-bin-runtime-policy.js";
@@ -236,6 +237,8 @@ export function createOpenClawCodingTools(options?: {
   disableMessageTool?: boolean;
   /** Whether the sender is an owner (required for owner-only tools). */
   senderIsOwner?: boolean;
+  /** Orchestration mode for dynamic tool visibility (auto/direct/delegate). */
+  orchestrationMode?: "direct" | "delegate";
 }): AnyAgentTool[] {
   const execToolName = "exec";
   const sandbox = options?.sandbox?.enabled ? options.sandbox : undefined;
@@ -518,6 +521,10 @@ export function createOpenClawCodingTools(options?: {
       }),
       { policy: sandbox?.tools, label: "sandbox tools.allow" },
       { policy: subagentPolicy, label: "subagent tools.allow" },
+      {
+        policy: buildOrchestrationToolPolicy(options?.orchestrationMode ?? "direct"),
+        label: "orchestrate-mode tools.allow",
+      },
     ],
   });
   // Always normalize tool JSON Schemas before handing them to pi-agent/pi-ai.
